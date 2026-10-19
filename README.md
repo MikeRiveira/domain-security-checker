@@ -1,6 +1,7 @@
 # Domain & Email Security Checker
 
 [![Tests](https://github.com/MikeRiveira/domain-security-checker/actions/workflows/tests.yml/badge.svg)](https://github.com/MikeRiveira/domain-security-checker/actions/workflows/tests.yml)
+[![CodeQL](https://github.com/MikeRiveira/domain-security-checker/actions/workflows/codeql.yml/badge.svg)](https://github.com/MikeRiveira/domain-security-checker/actions/workflows/codeql.yml)
 [![Daily domain check](https://github.com/MikeRiveira/domain-security-checker/actions/workflows/daily-check.yml/badge.svg)](https://github.com/MikeRiveira/domain-security-checker/actions/workflows/daily-check.yml)
 
 **One command checks every domain your company owns for the settings that stop email spoofing and surprise outages:** MX, SPF, DKIM, DMARC, the website's SSL certificate and the domain's registration expiry. Run it on your laptop, or let GitHub Actions run it every morning for free.
@@ -106,6 +107,10 @@ dkim_selectors = ["selector1", "s1"]    # add a marketing platform's selector
 - **Python standard library plus [dnspython](https://www.dnspython.org/).** TLS checks use `ssl` with full certificate verification, and RDAP lookups use `urllib`.
 - **Each check is a small pure function** that gets its DNS and network lookups passed in, so the [test suite](tests/test_checks.py) covers every pass, warning and fail rule without touching the network.
 - **Domains are checked in parallel**, so a list of 30 domains takes about as long as one.
+
+## Contributing
+
+New checks and fixes are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) to get set up, and the [good first issues](https://github.com/MikeRiveira/domain-security-checker/labels/good%20first%20issue) for ideas. Please report security problems privately, as described in [SECURITY.md](SECURITY.md).
 
 ## About me
 

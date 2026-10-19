@@ -1,0 +1,22 @@
+name: Bug report
+description: A check gives a wrong result, or the tool crashes
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include the command you ran and the output. Replace private domains with example.com.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and Python version
+      placeholder: "v1.0.0, Python 3.12, Windows 11"
