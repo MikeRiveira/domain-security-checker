@@ -21,7 +21,7 @@ jobs:
         run: |
           domaincheck --config domains.toml --format markdown --fail-on never | tee report.md
           cat report.md >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: domain-report
           path: report.md
