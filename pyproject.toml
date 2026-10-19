@@ -10,7 +10,7 @@ readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Michael Riveira" }]
 requires-python = ">=3.11"
-dependencies = ["dnspython>=2.4"]
+dependencies = ["dnspython>=2.9.0"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
