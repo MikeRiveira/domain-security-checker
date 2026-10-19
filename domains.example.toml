@@ -1,0 +1,18 @@
+# Copy to domains.toml and list every domain your organization owns,
+# including parked ones: unused domains are a favorite for spoofing.
+
+[defaults]
+# DKIM selectors can't be discovered from DNS, so list the ones you use.
+# Microsoft 365 uses selector1 and selector2; Google Workspace uses google.
+dkim_selectors = ["selector1", "selector2", "google"]
+
+[[domain]]
+name = "example.com"
+
+[[domain]]
+name = "example.net"
+https_host = "www.example.net"   # check the website's certificate instead of the bare domain
+
+[[domain]]
+name = "example.org"
+dkim_selectors = ["selector1", "selector2", "s1"]   # e.g. a marketing platform's selector

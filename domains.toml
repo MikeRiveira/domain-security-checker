@@ -1,0 +1,19 @@
+# Domains checked by the daily GitHub Actions run in this repo.
+# These are public, well-known domains used as a live demo.
+# Fork the repo and replace them with your own (see domains.example.toml).
+
+[defaults]
+dkim_selectors = ["selector1", "selector2", "google", "s1", "s2", "k1"]
+
+[[domain]]
+name = "example.com"
+
+[[domain]]
+name = "github.com"
+
+[[domain]]
+name = "microsoft.com"
+https_host = "www.microsoft.com"
+
+[[domain]]
+name = "google.com"
