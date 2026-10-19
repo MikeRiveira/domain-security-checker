@@ -4,6 +4,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # This is a tool other people install, so keep minimum versions loose:
+    # only propose a change when a new release falls outside the allowed range.
+    versioning-strategy: increase-if-necessary
   - package-ecosystem: github-actions
     directory: /
     schedule:
