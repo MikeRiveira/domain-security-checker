@@ -223,6 +223,23 @@ def check_mta_sts(domain: str, txt: TxtLookup = dns_txt, fetch: Callable[[str], 
     return Result("MTA-STS", WARN, f"Policy has an invalid or missing mode ({mode or '?'})")
 
 
+def check_bimi(domain: str, txt: TxtLookup = dns_txt) -> Result:
+    """BIMI shows the brand logo in Gmail, Yahoo and Apple Mail, but only when DMARC is enforced."""
+    records = [r for r in txt(f"default._bimi.{domain}") if r.lower().startswith("v=bimi1")]
+    if not records:
+        return Result("BIMI", INFO, "Not set up (optional): BIMI shows your logo next to your email in Gmail and Apple Mail")
+    if len(records) > 1:
+        return Result("BIMI", WARN, f"{len(records)} BIMI records found; there must be exactly one")
+    logo = _tags(records[0]).get("l", "")
+    dmarc = [r for r in txt(f"_dmarc.{domain}") if r.lower().startswith("v=dmarc1")]
+    policy = _tags(dmarc[0]).get("p", "").lower() if len(dmarc) == 1 else ""
+    if not logo.lower().startswith("https://"):
+        return Result("BIMI", WARN, "Logo URL (l=) is missing or not HTTPS, so mail providers will ignore it")
+    if policy not in ("quarantine", "reject"):
+        return Result("BIMI", WARN, "Record found, but DMARC isn't p=quarantine or p=reject, so the logo won't show")
+    return Result("BIMI", PASS, f"Logo published and DMARC is p={policy}")
+
+
 def tls_cert_expiry(host: str, port: int = 443, timeout: float = 10) -> dt.datetime:
     """Connect over TLS with full verification and return the cert's expiry (UTC)."""
     context = ssl.create_default_context()
@@ -305,6 +322,8 @@ def check_domain(
         if receives_mail else Result("DKIM", INFO, "Skipped: domain receives no email"),
         _guarded("MTA-STS", check_mta_sts, domain)
         if receives_mail else Result("MTA-STS", INFO, "Skipped: domain receives no email"),
+        _guarded("BIMI", check_bimi, domain)
+        if receives_mail else Result("BIMI", INFO, "Skipped: domain receives no email"),
         check_ssl(https_host or domain, now),
         check_registration(domain, now),
     ]
