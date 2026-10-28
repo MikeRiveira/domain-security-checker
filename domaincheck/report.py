@@ -1,7 +1,9 @@
-"""Render domain reports as text, Markdown or JSON."""
+"""Render domain reports as text, Markdown, JSON or CSV."""
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 from dataclasses import asdict
 
@@ -59,3 +61,14 @@ def render_json(reports: list[DomainReport], generated: str) -> str:
         ],
     }
     return json.dumps(payload, indent=2)
+
+
+def render_csv(reports: list[DomainReport]) -> str:
+    """One row per domain and check, ready to open in Excel or attach to a ticket."""
+    out = io.StringIO()
+    writer = csv.writer(out, lineterminator="\n")
+    writer.writerow(["domain", "check", "status", "detail"])
+    for report in reports:
+        for r in report.results:
+            writer.writerow([report.domain, r.check, r.status, r.detail])
+    return out.getvalue()

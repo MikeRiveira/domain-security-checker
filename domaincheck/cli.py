@@ -9,7 +9,7 @@ import tomllib
 from concurrent.futures import ThreadPoolExecutor
 
 from .checks import FAIL, SEVERITY, WARN, check_domain
-from .report import render_json, render_markdown, render_text
+from .report import render_csv, render_json, render_markdown, render_text
 
 
 def load_config(path: str) -> list[dict]:
@@ -34,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("domains", nargs="*", help="domains to check (or use --config)")
     parser.add_argument("-c", "--config", help="TOML file listing domains and DKIM selectors")
-    parser.add_argument("-f", "--format", choices=["text", "markdown", "json"], default="text")
+    parser.add_argument("-f", "--format", choices=["text", "markdown", "json", "csv"], default="text")
     parser.add_argument(
         "--fail-on", choices=["fail", "warn", "never"], default="fail",
         help="exit non-zero when any check reaches this level (default: fail)",
@@ -56,6 +56,8 @@ def main(argv: list[str] | None = None) -> int:
         print(render_markdown(reports, generated))
     elif args.format == "json":
         print(render_json(reports, generated))
+    elif args.format == "csv":
+        print(render_csv(reports), end="")
     else:
         print(render_text(reports))
 

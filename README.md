@@ -74,6 +74,7 @@ pip install .
 domaincheck example.com example.org          # check a few domains
 domaincheck --config domains.example.toml    # or check a list from a file
 domaincheck -c domains.toml -f markdown      # Markdown report (also: -f json)
+domaincheck -c domains.toml -f csv > report.csv   # spreadsheet: one row per domain and check
 ```
 
 The exit code is `1` when any domain has a failing check, so it fits into scripts and scheduled tasks. Use `--fail-on warn` to be stricter or `--fail-on never` to always exit `0`.
