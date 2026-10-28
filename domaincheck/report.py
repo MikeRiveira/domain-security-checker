@@ -39,9 +39,9 @@ def render_markdown(reports: list[DomainReport], generated: str) -> str:
         f"_Generated {generated}_ · {len(reports)} domain(s) · "
         f"{ICONS[PASS]} {c[PASS]} pass · {ICONS[WARN]} {c[WARN]} warning · {ICONS[FAIL]} {c[FAIL]} fail",
         "",
-        "| Domain | MX | SPF | DMARC | DKIM | SSL | Registration |",
-        "|---|---|---|---|---|---|---|",
     ]
+    names = [r.check for r in reports[0].results] if reports else []
+    lines += ["| Domain | " + " | ".join(names) + " |", "|---" * (len(names) + 1) + "|"]
     for report in reports:
         cells = [ICONS[r.status] for r in report.results]
         lines.append(f"| **{report.domain}** | " + " | ".join(cells) + " |")

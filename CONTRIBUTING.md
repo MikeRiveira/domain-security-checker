@@ -22,7 +22,7 @@ Each check in [`domaincheck/checks.py`](domaincheck/checks.py) is a small functi
 - Take DNS and network lookups as parameters (see `check_spf` and `check_ssl`), so tests can pass in fake data instead of touching the network.
 - Use `PASS`, `WARN`, `FAIL` or `INFO`, and write `detail` in plain English that tells the reader what to fix.
 - Add tests in [`tests/test_checks.py`](tests/test_checks.py) for the pass, warning and fail cases.
-- Add the check to `check_domain`, the Markdown table in `report.py`, and the "What it checks" table in the README.
+- Add the check to `check_domain` and to the "What it checks" table in the README. The Markdown report's columns follow the checks automatically.
 
 ## Pull requests
 

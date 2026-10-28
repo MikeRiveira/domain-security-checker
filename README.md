@@ -52,6 +52,7 @@ Checking them one at a time in MX Toolbox took most of a morning. This tool chec
 | **SPF** | One record ending in `-all`, 10 or fewer DNS lookups | `~all` or `?all`; a parked domain without `v=spf1 -all` | Missing, duplicated, `+all`, or over the 10-lookup limit |
 | **DMARC** | `p=reject` or `p=quarantine` with `rua=` reports | `p=none`, `pct` under 100, or no reports | Missing, duplicated or invalid |
 | **DKIM** | A public key at one of your selectors | Only revoked keys, or none at the selectors checked | |
+| **MTA-STS** | `mode: enforce` with a TLS-RPT record for failure reports | `mode: testing` or `none`, no TLS-RPT record, or the policy file can't be fetched | |
 | **SSL** | Valid certificate, 30+ days left | Under 30 days | Under 14 days, invalid, or unreachable |
 | **Registration** | 60+ days until expiry | Under 60 days | Under 30 days |
 

@@ -123,6 +123,44 @@ def test_dkim_none_warns():
     assert checks.check_dkim("d.test", ["s1"], fake_txt({})).status == WARN
 
 
+# --- MTA-STS ---------------------------------------------------------------
+
+STS = {"_mta-sts.d.test": ["v=STSv1; id=20261028"], "_smtp._tls.d.test": ["v=TLSRPTv1; rua=mailto:tls@d.test"]}
+
+
+def policy(mode):
+    return lambda url: f"version: STSv1\nmode: {mode}\nmx: *.mail.protection.outlook.com\nmax_age: 604800\n"
+
+
+def test_mta_sts_enforce_with_reports_passes():
+    urls = []
+    r = checks.check_mta_sts("d.test", fake_txt(STS), lambda url: urls.append(url) or policy("enforce")(url))
+    assert r.status == PASS
+    assert urls == ["https://mta-sts.d.test/.well-known/mta-sts.txt"]
+
+
+def test_mta_sts_without_tls_rpt_warns():
+    txt = fake_txt({"_mta-sts.d.test": STS["_mta-sts.d.test"]})
+    r = checks.check_mta_sts("d.test", txt, policy("enforce"))
+    assert r.status == WARN and "TLS-RPT" in r.detail
+
+
+def test_mta_sts_testing_mode_warns():
+    assert checks.check_mta_sts("d.test", fake_txt(STS), policy("testing")).status == WARN
+
+
+def test_mta_sts_missing_is_info():
+    r = checks.check_mta_sts("d.test", fake_txt({}), policy("enforce"))
+    assert r.status == INFO and "optional" in r.detail
+
+
+def test_mta_sts_unreachable_policy_warns():
+    def unreachable(url):
+        raise OSError("connection refused")
+    r = checks.check_mta_sts("d.test", fake_txt(STS), unreachable)
+    assert r.status == WARN and "couldn't be fetched" in r.detail
+
+
 # --- SSL -------------------------------------------------------------------
 
 def test_ssl_thresholds():
