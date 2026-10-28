@@ -4,7 +4,7 @@ import ssl
 from domaincheck import checks
 from domaincheck.checks import FAIL, INFO, PASS, WARN
 from domaincheck.cli import load_config, main
-from domaincheck.report import render_json, render_markdown
+from domaincheck.report import render_csv, render_json, render_markdown
 
 NOW = dt.datetime(2026, 10, 19, tzinfo=dt.timezone.utc)
 
@@ -123,6 +123,44 @@ def test_dkim_none_warns():
     assert checks.check_dkim("d.test", ["s1"], fake_txt({})).status == WARN
 
 
+# --- MTA-STS ---------------------------------------------------------------
+
+STS = {"_mta-sts.d.test": ["v=STSv1; id=20261028"], "_smtp._tls.d.test": ["v=TLSRPTv1; rua=mailto:tls@d.test"]}
+
+
+def policy(mode):
+    return lambda url: f"version: STSv1\nmode: {mode}\nmx: *.mail.protection.outlook.com\nmax_age: 604800\n"
+
+
+def test_mta_sts_enforce_with_reports_passes():
+    urls = []
+    r = checks.check_mta_sts("d.test", fake_txt(STS), lambda url: urls.append(url) or policy("enforce")(url))
+    assert r.status == PASS
+    assert urls == ["https://mta-sts.d.test/.well-known/mta-sts.txt"]
+
+
+def test_mta_sts_without_tls_rpt_warns():
+    txt = fake_txt({"_mta-sts.d.test": STS["_mta-sts.d.test"]})
+    r = checks.check_mta_sts("d.test", txt, policy("enforce"))
+    assert r.status == WARN and "TLS-RPT" in r.detail
+
+
+def test_mta_sts_testing_mode_warns():
+    assert checks.check_mta_sts("d.test", fake_txt(STS), policy("testing")).status == WARN
+
+
+def test_mta_sts_missing_is_info():
+    r = checks.check_mta_sts("d.test", fake_txt({}), policy("enforce"))
+    assert r.status == INFO and "optional" in r.detail
+
+
+def test_mta_sts_unreachable_policy_warns():
+    def unreachable(url):
+        raise OSError("connection refused")
+    r = checks.check_mta_sts("d.test", fake_txt(STS), unreachable)
+    assert r.status == WARN and "couldn't be fetched" in r.detail
+
+
 # --- BIMI -------------------------------------------------------------------
 
 def bimi_txt(dmarc="v=DMARC1; p=reject; rua=mailto:d@d.test", logo="https://d.test/logo.svg"):
@@ -207,6 +245,24 @@ def test_markdown_and_json_render():
     md = render_markdown([sample_report()], "now")
     assert "| **d.test** | ✅ | ⚠️ | ❌ |" in md
     assert '"FAIL": 1' in render_json([sample_report()], "now")
+
+
+def test_csv_render_escapes_commas_and_quotes():
+    import csv
+    import io
+
+    report = sample_report()
+    report.results[1] = checks.Result("SPF", WARN, 'Soft fail (~all), "-all" is stricter')
+    rows = list(csv.reader(io.StringIO(render_csv([report]))))
+    assert rows[0] == ["domain", "check", "status", "detail"]
+    assert rows[2] == ["d.test", "SPF", WARN, 'Soft fail (~all), "-all" is stricter']
+    assert len(rows) == 1 + len(report.results)
+
+
+def test_cli_csv_output(monkeypatch, capsys):
+    monkeypatch.setattr("domaincheck.cli.check_domain", lambda domain, now, **_: sample_report())
+    main(["d.test", "-f", "csv", "--fail-on", "never"])
+    assert capsys.readouterr().out.startswith("domain,check,status,detail\nd.test,MX,PASS,ok\n")
 
 
 def test_load_config(tmp_path):
