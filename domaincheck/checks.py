@@ -182,6 +182,47 @@ def check_dkim(domain: str, selectors: list[str] | None = None, txt: TxtLookup =
     return Result("DKIM", WARN, "No key at common selectors; list your selectors in the config")
 
 
+def fetch_https_text(url: str, timeout: float = 10) -> str:
+    """Fetch a small text file over HTTPS with full certificate verification."""
+    with urllib.request.urlopen(url, timeout=timeout) as response:
+        return response.read(65536).decode("utf-8", "replace")
+
+
+def _policy_fields(text: str) -> dict[str, str]:
+    """Parse an MTA-STS policy file ('key: value' lines) into a lowercase-keyed dict."""
+    fields = {}
+    for line in text.splitlines():
+        if ":" in line:
+            key, value = line.split(":", 1)
+            fields.setdefault(key.strip().lower(), value.strip())
+    return fields
+
+
+def check_mta_sts(domain: str, txt: TxtLookup = dns_txt, fetch: Callable[[str], str] = fetch_https_text) -> Result:
+    """MTA-STS (RFC 8461) makes senders require verified TLS; TLS-RPT (RFC 8460) reports failures."""
+    records = [r for r in txt(f"_mta-sts.{domain}") if r.lower().startswith("v=stsv1")]
+    has_tlsrpt = any(r.lower().startswith("v=tlsrptv1") for r in txt(f"_smtp._tls.{domain}"))
+    if not records:
+        return Result("MTA-STS", INFO, "Not set up (optional): MTA-STS makes other servers deliver mail only over verified TLS")
+    if len(records) > 1:
+        return Result("MTA-STS", WARN, f"{len(records)} MTA-STS records found; there must be exactly one")
+    url = f"https://mta-sts.{domain}/.well-known/mta-sts.txt"
+    try:
+        policy = _policy_fields(fetch(url))
+    except (OSError, ValueError) as e:
+        return Result("MTA-STS", WARN, f"Record found, but the policy at {url} couldn't be fetched ({e.__class__.__name__})")
+    mode = policy.get("mode", "").lower()
+    if mode == "enforce" and has_tlsrpt:
+        return Result("MTA-STS", PASS, "mode: enforce, with TLS-RPT reports")
+    if mode == "enforce":
+        return Result("MTA-STS", WARN, f"mode: enforce, but no TLS-RPT record at _smtp._tls.{domain} to report failures")
+    if mode == "testing":
+        return Result("MTA-STS", WARN, "mode: testing (failures are reported but mail is still delivered); switch to enforce")
+    if mode == "none":
+        return Result("MTA-STS", WARN, "mode: none (policy is switched off)")
+    return Result("MTA-STS", WARN, f"Policy has an invalid or missing mode ({mode or '?'})")
+
+
 def tls_cert_expiry(host: str, port: int = 443, timeout: float = 10) -> dt.datetime:
     """Connect over TLS with full verification and return the cert's expiry (UTC)."""
     context = ssl.create_default_context()
@@ -262,6 +303,8 @@ def check_domain(
         _guarded("DMARC", check_dmarc, domain),
         _guarded("DKIM", check_dkim, domain, dkim_selectors)
         if receives_mail else Result("DKIM", INFO, "Skipped: domain receives no email"),
+        _guarded("MTA-STS", check_mta_sts, domain)
+        if receives_mail else Result("MTA-STS", INFO, "Skipped: domain receives no email"),
         check_ssl(https_host or domain, now),
         check_registration(domain, now),
     ]
