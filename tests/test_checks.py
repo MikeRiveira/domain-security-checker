@@ -4,7 +4,7 @@ import ssl
 from domaincheck import checks
 from domaincheck.checks import FAIL, INFO, PASS, WARN
 from domaincheck.cli import load_config, main
-from domaincheck.report import render_json, render_markdown
+from domaincheck.report import render_csv, render_json, render_markdown
 
 NOW = dt.datetime(2026, 10, 19, tzinfo=dt.timezone.utc)
 
@@ -182,6 +182,24 @@ def test_markdown_and_json_render():
     md = render_markdown([sample_report()], "now")
     assert "| **d.test** | ✅ | ⚠️ | ❌ |" in md
     assert '"FAIL": 1' in render_json([sample_report()], "now")
+
+
+def test_csv_render_escapes_commas_and_quotes():
+    import csv
+    import io
+
+    report = sample_report()
+    report.results[1] = checks.Result("SPF", WARN, 'Soft fail (~all), "-all" is stricter')
+    rows = list(csv.reader(io.StringIO(render_csv([report]))))
+    assert rows[0] == ["domain", "check", "status", "detail"]
+    assert rows[2] == ["d.test", "SPF", WARN, 'Soft fail (~all), "-all" is stricter']
+    assert len(rows) == 1 + len(report.results)
+
+
+def test_cli_csv_output(monkeypatch, capsys):
+    monkeypatch.setattr("domaincheck.cli.check_domain", lambda domain, now, **_: sample_report())
+    main(["d.test", "-f", "csv", "--fail-on", "never"])
+    assert capsys.readouterr().out.startswith("domain,check,status,detail\nd.test,MX,PASS,ok\n")
 
 
 def test_load_config(tmp_path):
