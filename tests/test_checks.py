@@ -123,6 +123,31 @@ def test_dkim_none_warns():
     assert checks.check_dkim("d.test", ["s1"], fake_txt({})).status == WARN
 
 
+# --- BIMI -------------------------------------------------------------------
+
+def bimi_txt(dmarc="v=DMARC1; p=reject; rua=mailto:d@d.test", logo="https://d.test/logo.svg"):
+    return fake_txt({"default._bimi.d.test": [f"v=BIMI1; l={logo}; a="], "_dmarc.d.test": [dmarc]})
+
+
+def test_bimi_with_enforced_dmarc_passes():
+    r = checks.check_bimi("d.test", bimi_txt())
+    assert r.status == PASS and "p=reject" in r.detail
+
+
+def test_bimi_without_enforced_dmarc_warns():
+    r = checks.check_bimi("d.test", bimi_txt(dmarc="v=DMARC1; p=none"))
+    assert r.status == WARN and "DMARC" in r.detail
+
+
+def test_bimi_http_logo_warns():
+    r = checks.check_bimi("d.test", bimi_txt(logo="http://d.test/logo.svg"))
+    assert r.status == WARN and "HTTPS" in r.detail
+
+
+def test_bimi_missing_is_info():
+    assert checks.check_bimi("d.test", fake_txt({})).status == INFO
+
+
 # --- SSL -------------------------------------------------------------------
 
 def test_ssl_thresholds():
